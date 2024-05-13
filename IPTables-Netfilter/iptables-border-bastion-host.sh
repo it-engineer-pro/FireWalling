@@ -395,7 +395,7 @@ iptables -A OUTPUT -j LOG_DROP
 iptables -A FORWARD -j LOG_DROP
 #
 
-# TEMPLATE for quick RULES
+# TEMPLATE for quick RULES.
 #$IPT -A INPUT -i $DMZ_IF -p tcp -s $DMZ_SN \
 #              --sport $DYNC_PRTS --dport $RGST_PRTS \
 #              -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
