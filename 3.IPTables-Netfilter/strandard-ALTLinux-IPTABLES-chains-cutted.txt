@@ -1,0 +1,228 @@
+#==============================================================================
+filter/INPUT
+# ..............
+# This file was automatically created by alterator-net-iptables.
+# If you are using alterator-net-iptables then all changes
+# made in this file by hands may lost!
+# For more information see alterator-net-iptables(1).
+# Имеем в VirtualBox четыре подключенных интерфейса произвольной ЛАБы с ALTLinux.
+# Имеем настроенный Alterator с установленным пакетом alterator-net-iptables.
+# В Alterator появляются соответствующие разделы, в которых можно за пять минут настроить шлюз с NAT, логированием,
+# блокировкой нелегитимных узлов внутри закрытой сети. А так же с чёрным списком, узлов с запретом на подключение.
+# Ниже приведён пример, скрипта, который можно взять из портала управления. Он сокращён, что бы можно было попроще
+# уточнить нюансы связанные с порядком реализации работы шлюза.
+
+-P ACCEPT
+-f -j DROP
+# правило для логирования трафика, если установлен пакет логирования.
+-j ULOG --ulog-nlgroup 1 --ulog-cprange 48 --ulog-qthreshold 50 --ulog-prefix "icount"
+# Обеспечение работы с уже установленными соединениями.
+-m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+# Правила для отдельных разрешённых узлов на внутренних интерфейсах. Контроль по MAC и IP адресам.
+-i enp0s10 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                         -p icmp -j ACCEPT
+-i enp0s8 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                         -p icmp -j ACCEPT
+-i enp0s9 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                         -p icmp -j ACCEPT
+-i enp0s10 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                         -p tcp --dport 22 -j ACCEPT
+-i enp0s8 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                         -p tcp --dport 22 -j ACCEPT
+-i enp0s9 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                         -p tcp --dport 22 -j ACCEPT
+-i enp0s10 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                         -p tcp --dport 8080 -j ACCEPT
+-i enp0s8 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                         -p tcp --dport 8080 -j ACCEPT
+-i enp0s9 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                         -p tcp --dport 8080 -j ACCEPT
+# Запрет всех остальных соединений на внутренних интерфейсах для конкретного узла.
+-i enp0s10 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                    -j DROP
+-i enp0s8 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                    -j DROP
+-i enp0s9 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                    -j DROP
+# Правила разрешающие соединения всем узлам, в т.ч. и не зарегистрированным по связке MAC/IP.
+-i enp0s10 -p icmp -j ACCEPT
+-i enp0s8 -p icmp -j ACCEPT
+-i enp0s9 -p icmp -j ACCEPT
+-i enp0s10 -p tcp --dport 22 -j ACCEPT
+-i enp0s8 -p tcp --dport 22 -j ACCEPT
+-i enp0s9 -p tcp --dport 22 -j ACCEPT
+-i enp0s10 -p tcp --dport 8080 -j ACCEPT
+-i enp0s8 -p tcp --dport 8080 -j ACCEPT
+-i enp0s9 -p tcp --dport 8080 -j ACCEPT
+# Правило логирующее попытки подключений на внутренних интерфейсах, помимо указанных выше.
+-i enp0s10 -j LOG --log-prefix 'iptables: wrong IP/MAC:'
+-i enp0s10 -j DROP
+-i enp0s8 -j LOG --log-prefix 'iptables: wrong IP/MAC:'
+-i enp0s8 -j DROP
+-i enp0s9 -j LOG --log-prefix 'iptables: wrong IP/MAC:'
+-i enp0s9 -j DROP
+# Правила на внешнем интерфейсе, разрешающие подключения извне сети.
+# Часть идут непосредственно к сервисам узла. Часть к сервисам внутри защищаемой сети за NAT.
+# udp/22 создавалось мастером, вероятно такое используется кем-то.
+-i enp0s3 -p tcp --dport 8080 -j ACCEPT
+-i enp0s3 -p tcp --dport 22 -j ACCEPT
+-i enp0s3 -p udp --dport 22 -j ACCEPT
+-i enp0s3 -p icmp -j ACCEPT
+-i enp0s3 -p tcp --dport 2210 -j ACCEPT
+-i enp0s3 -p tcp --dport 2211 -j ACCEPT
+-i enp0s3 -p tcp --dport 2212 -j ACCEPT
+-i enp0s3 -p tcp --dport 2213 -j ACCEPT
+-i enp0s3 -p tcp --dport 5900 -j ACCEPT
+-i enp0s3 -p tcp --dport 53 -j ACCEPT
+-i enp0s3 -p tcp --dport 2222 -j ACCEPT
+-i enp0s3 -p udp --dport 5900 -j ACCEPT
+-i enp0s3 -j DROP
+
+filter/OUTPUT
+# ..............
+# This file was automatically created by alterator-net-iptables.
+# If you are using alterator-net-iptables then all changes
+# made in this file by hands may lost!
+# For more information see alterator-net-iptables(1).
+
+# Видим, что правила Alterator не позволяют решать задачу контроля исходящих подключений непосредственно с хоста.
+
+-P ACCEPT
+-f -j DROP
+# Правило для логирования.
+-j ULOG --ulog-nlgroup 1 --ulog-cprange 48 --ulog-qthreshold 50 --ulog-prefix "ocount"
+# Правило для работы установленных соединений в цепочке OUTPUT.
+-m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+filter/FORWARD
+# ..............
+# This file was automatically created by alterator-net-iptables.
+# If you are using alterator-net-iptables then all changes
+# made in this file by hands may lost!
+# For more information see alterator-net-iptables(1).
+
+# Политика по умолчанию.
+-P ACCEPT
+-f -j DROP
+# Правило для логирования.
+-j ULOG --ulog-nlgroup 1 --ulog-cprange 48 --ulog-qthreshold 50 --ulog-prefix "fcount"
+# Правило для работы установленных соединений в цепочке FORWARD.
+-m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+# Набор правил для пропуска пакетов к внутреннему хосту с подключениями с внешнего интерфейса.
+-p tcp --destination 192.168.110.100 --dport 22 -j ACCEPT
+-p tcp --destination 192.168.110.100 --dport 5900 -j ACCEPT
+-p tcp --destination 192.168.110.100 --dport 53 -j ACCEPT
+-p udp --destination 192.168.110.100 --dport 53 -j ACCEPT
+-p udp --destination 192.168.115.11 --dport 22 -j ACCEPT
+-p udp --destination 192.168.110.12 --dport 22 -j ACCEPT
+-p udp --destination 192.168.110.13 --dport 22 -j ACCEPT
+# Набор правил для выпуска пакетов с внутреннего хоста
+-i enp0s10 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                         -p icmp -j ACCEPT
+-i enp0s8 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                         -p icmp -j ACCEPT
+-i enp0s9 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                         -p icmp -j ACCEPT
+-i enp0s10 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                         -p tcp --dport 22 -j ACCEPT
+-i enp0s8 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                         -p tcp --dport 22 -j ACCEPT
+-i enp0s9 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                         -p tcp --dport 22 -j ACCEPT
+-i enp0s10 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                         -p tcp --dport 8080 -j ACCEPT
+-i enp0s8 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                         -p tcp --dport 8080 -j ACCEPT
+-i enp0s9 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                         -p tcp --dport 8080 -j ACCEPT
+# запрет пересылки через FORWARDING всех пакетов конкретной связки MAC/IP.
+-i enp0s10 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                    -j DROP
+-i enp0s8 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                    -j DROP
+-i enp0s9 -s 192.168.110.12  -m mac --mac-source 08:00:27:fa:8d:c7                    -j DROP
+# Набор правил разрешённых для всех в FORWARDING с внутренних интерфейсов шлюза.
+-i enp0s10 -p icmp -j ACCEPT
+-i enp0s8 -p icmp -j ACCEPT
+-i enp0s9 -p icmp -j ACCEPT
+-i enp0s10 -p tcp --dport 22 -j ACCEPT
+-i enp0s8 -p tcp --dport 22 -j ACCEPT
+-i enp0s9 -p tcp --dport 22 -j ACCEPT
+-i enp0s10 -p tcp --dport 8080 -j ACCEPT
+-i enp0s8 -p tcp --dport 8080 -j ACCEPT
+-i enp0s9 -p tcp --dport 8080 -j ACCEPT
+# Логирование и блокирование всех остальных пакетов, кроме разрешённых выше в FORWARDING.
+-i enp0s10 -j LOG --log-prefix 'iptables: wrong IP/MAC:'
+-i enp0s10 -j DROP
+-i enp0s8 -j LOG --log-prefix 'iptables: wrong IP/MAC:'
+-i enp0s8 -j DROP
+-i enp0s9 -j LOG --log-prefix 'iptables: wrong IP/MAC:'
+-i enp0s9 -j DROP
+# Разрешение отправки с внешнего интерфейса во внешнюю сеть. ???
+-i enp0s3 -d 192.168.92.0/24 -j ACCEPT
+# Так же -- ???
+-m physdev --physdev-is-bridged -j ACCEPT
+# Разрешение работы уже установленных соединенй.
+-i enp0s3 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+# Запрет всего остального в FORWARDING.
+-i enp0s3 -j DROP
+
+#******************************************************************************
+
+nat/POSTROUTING
+# ..............
+# This file was automatically created by alterator-net-iptables.
+# If you are using alterator-net-iptables then all changes
+# made in this file by hands may lost!
+# For more information see alterator-net-iptables(1).
+# Определение порядка SNAT. Несмотря на статический адрес на внешнем интерфейсе, настройки определены в динамическом виде.
+-o enp0s3 -j MASQUERADE
+
+nat/PREROUTING
+# ..............
+# This file was automatically created by alterator-net-iptables.
+# If you are using alterator-net-iptables then all changes
+# made in this file by hands may lost!
+# For more information see alterator-net-iptables(1).
+# 192.168.62.115 -- адрес внешнего интерфейса шлюза.
+# Разрешение портов для внешнего перенаправления в DNAT и отправки до конкретного узла во внутренней сети за шлюзом.
+-p tcp --destination 192.168.62.115 --dport 2210 -j DNAT --to-destination 192.168.110.100:22
+-p tcp --destination 192.168.62.115 --dport 5900 -j DNAT --to-destination 192.168.110.100:5900
+-p tcp --destination 192.168.62.115 --dport 53 -j DNAT --to-destination 192.168.110.100:53
+-p udp --destination 192.168.62.115 --dport 53 -j DNAT --to-destination 192.168.110.100:53
+-p udp --destination 192.168.62.115 --dport 2211 -j DNAT --to-destination 192.168.115.11:22
+-p udp --destination 192.168.62.115 --dport 2212 -j DNAT --to-destination 192.168.110.12:22
+-p udp --destination 192.168.62.115 --dport 2213 -j DNAT --to-destination 192.168.110.13:22
+
+nat/OUTPUT
+# ..............
+# This file was automatically created by alterator-net-iptables.
+# If you are using alterator-net-iptables then all changes
+# made in this file by hands may lost!
+# For more information see alterator-net-iptables(1).
+# Симметричный набор правил, как и в nat/PREROUTING для отправки шлюзом пакетов до участника организуемого соединения.
+-p tcp --destination 192.168.62.115 --dport 2210 -j DNAT --to-destination 192.168.110.100:22
+-p tcp --destination 192.168.62.115 --dport 5900 -j DNAT --to-destination 192.168.110.100:5900
+-p tcp --destination 192.168.62.115 --dport 53 -j DNAT --to-destination 192.168.110.100:53
+-p udp --destination 192.168.62.115 --dport 53 -j DNAT --to-destination 192.168.110.100:53
+-p udp --destination 192.168.62.115 --dport 2211 -j DNAT --to-destination 192.168.115.11:22
+-p udp --destination 192.168.62.115 --dport 2212 -j DNAT --to-destination 192.168.110.12:22
+-p udp --destination 192.168.62.115 --dport 2213 -j DNAT --to-destination 192.168.110.13:22
+
+#******************************************************************************
+mangle/POSTROUTING
+# This file was automatically created by alterator-net-iptables.
+# If you are using alterator-net-iptables then all changes
+# made in this file by hands may lost!
+# For more information see alterator-net-iptables(1).
+
+mangle/PREROUTING
+# This file was automatically created by alterator-net-iptables.
+# If you are using alterator-net-iptables then all changes
+# made in this file by hands may lost!
+# For more information see alterator-net-iptables(1).
+
+mangle/OUTPUT
+# This file was automatically created by alterator-net-iptables.
+# If you are using alterator-net-iptables then all changes
+# made in this file by hands may lost!
+# For more information see alterator-net-iptables(1).
+
+mangle/INPUT
+# This file was automatically created by alterator-net-iptables.
+# If you are using alterator-net-iptables then all changes
+# made in this file by hands may lost!
+# For more information see alterator-net-iptables(1).
+
+mangle/FORWARD
+# This file was automatically created by alterator-net-iptables.
+# If you are using alterator-net-iptables then all changes
+# made in this file by hands may lost!
+# For more information see alterator-net-iptables(1).
+#==============================================================================
+# Как видно, всё более-менее логично, хотя и есть моменты, которые хотелось бы изменить.
+# Но данный метод организации доступа к сети и из неё, достаточно прост и технологичен, т.к.
+# он позволяет быстро решить задачу в первом приближении. Ну а после, можно определить более точно политику,
+# И сделать решение нацеленное на решение нюансов именно данного клиента.
+# Из режимов работы плагина alterator-net-iptables, доступны варианты:
+# -- ШЛЮЗ (NAT)
+# -- РОУТЕР
+# -- РАБОЧАЯ СТАНЦИЯ
+# Все рабочие.
