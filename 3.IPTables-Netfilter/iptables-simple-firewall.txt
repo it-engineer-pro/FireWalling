@@ -1,0 +1,161 @@
+# Проверим наличие файла с правилами для файрволла.
+cat /etc/sysconfig/iptables
+
+# Добавим правила для нормальной работы интерфейса локальной петли.
+iptables -A INPUT  -i lo --source 127.0.0.1 --destination 127.0.0.1 -j ACCEPT
+iptables -A OUTPUT -o lo --source 127.0.0.1 --destination 127.0.0.1 -j ACCEPT
+
+# Добавим правила для доступа с доверенного адреса по SSH.
+# Интерфейс доступа в правиле один, поэтому, если требуется работать со шлюзом из разных сетей,
+# то стоит этот вопрос оформить дополнительным правилом.
+iptables -A INPUT -p tcp -i enp0s9 --dport 22 --source 192.168.62.123 -j ACCEPT
+iptables -A OUTPUT -p tcp -o enp0s9 --sport 22 --destination 192.168.62.123 -j ACCEPT
+
+# Поменяем политику по умолчанию по работе с соединениями.
+iptables -P INPUT DROP
+iptables -P OUTPUT DROP
+iptables -P FORWARD DROP
+
+#  Проверим содеянное.
+iptables -nvL --line-numbers
+
+# Сохраним добытое непосильным трудом.
+iptables-save > /etc/sysconfig/iptables
+
+# Перезапустим
+systemctl restart iptables.service
+systemctl status iptables.service
+
+# Проверим ещё раз.
+iptables -nvL --line-numbers
+
+# Дальше задача простая. Требуется обеспечить нужное и не разрешать не нужное и не разумное.
+# Правило для POSTROUTING мы определили ранее:
+iptables -t nat -v -L POSTROUTING -n --line-number
+Chain POSTROUTING (policy ACCEPT 0 packets, 0 bytes)
+num   pkts bytes target     prot opt in     out     source               destination
+1       56  4095 SNAT       all  --  *      enp0s9  192.168.110.0/24     0.0.0.0/0            to:192.168.62.100
+
+[root@slinux ~]# iptables -t nat -L --line-numbers -n
+Chain PREROUTING (policy ACCEPT)
+num  target     prot opt source               destination
+
+Chain INPUT (policy ACCEPT)
+num  target     prot opt source               destination
+
+Chain OUTPUT (policy ACCEPT)
+num  target     prot opt source               destination
+
+Chain POSTROUTING (policy ACCEPT)
+num  target     prot opt source               destination
+1    SNAT       all  --  192.168.110.0/24     0.0.0.0/0            to:192.168.62.100
+
+
+# Простое правило для работы исходящих соединений из внутренней подсети.
+# Уровень контроля минимальный. С остальными настройками для них будем заниматься позже.
+iptables -I FORWARD 1 -i enp0s3 -o enp0s9 -d 0.0.0.0/0 -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+
+# Добавим правила для INPUT и OUTPUT.
+# Для INPUT только для SSH для доверенного хоста, и для тех сервисов, которые отдаёт файрволл в локальную сеть,
+# если такое всё же потребовалось.
+iptables -I INPUT 3 -p tcp -i enp0s3 -s 192.168.110.0/24 -d 192.168.110.100 -m multiport \
+                                                           --dports 22,80,443 \
+                                                           -m state --state NEW -j ACCEPT
+
+# Для OUTPUT правила для портов приложений, которые требуются для работы самого файрволла (обновления, запросы DNS, и тп.)
+iptables -I OUTPUT 3 -p tcp -o enp0s9 -m multiport --dports 22,80,443 -m state --state NEW -j ACCEPT
+iptables -I OUTPUT 4 -p udp -o enp0s9 -m multiport --dports 53 -m state --state NEW -j ACCEPT
+
+# -A добавляет в конец цепочки.
+# -I INPUT 3 -- добавляет в указанное место в цепочке
+# -D 4 -- удаляет правило из цепочки.
+# Для базового файрволла, логично размещать правила в цепочках в такой последовательности:
+# 1. localhost
+# 2. in/out services для INPUT/OUTPUT с состоянием NEW и указанием интерфейсов входа/выхода, протоколов и портов
+# 3. разрешать прохождение пакетов с состоянием ESTABLISHED,RELATED.
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A OUTPUT -p tcp -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# Проверим что получилось.
+iptables -t nat -v -L POSTROUTING -n --line-number
+iptables -nvL --line-number
+
+# Если не получилось, подправим. Удаляем правило и устанавливаем его заново с теми параметрами и в требуемой
+# последовательности.
+iptables -D OUTPUT 1
+iptables -I OUTPUT 1 -p ALL -s 127.0.0.0/8 -o lo -j ACCEPT
+
+# Проверим всё заново.
+# iptables -t filter -L chain --line-numbers -n -v
+# iptables -t filter -- default
+#
+iptables -t filter -L INPUT --line-numbers -n
+iptables -t filter -L OUTPUT --line-numbers -n
+iptables -t filter -L FORWARD --line-numbers -n
+iptables -t nat -L --line-numbers -n
+#
+iptables -t filter -D FORWARD 3
+
+# В итоге должно получиться примерно похожее состояние.
+[root@slinux ~]# iptables -vn -L --line-number
+Chain INPUT (policy DROP 0 packets, 0 bytes)
+num   pkts bytes target     prot opt in     out     source               destination
+1        0     0 ACCEPT     all  --  lo     *       127.0.0.1            127.0.0.1
+2      622 40720 ACCEPT     tcp  --  *      *       192.168.162.100      0.0.0.0/0            tcp dpt:22
+3        0     0 ACCEPT     tcp  --  enp0s3 *       192.168.110.0/24     192.168.110.100      multiport dports 22,80,443 state NEW
+4        0     0 ACCEPT     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            state RELATED,ESTABLISHED
+
+Chain FORWARD (policy DROP 2 packets, 168 bytes)
+num   pkts bytes target     prot opt in     out     source               destination
+1      205 17204 ACCEPT     all  --  enp0s3 enp0s9  192.168.110.0/24     0.0.0.0/0            state NEW,RELATED,ESTABLISHED
+
+Chain OUTPUT (policy DROP 1 packets, 76 bytes)
+num   pkts bytes target     prot opt in     out     source               destination
+1        0     0 ACCEPT     all  --  *      lo      127.0.0.1            127.0.0.1
+2      463 49604 ACCEPT     tcp  --  *      *       0.0.0.0/0            192.168.162.100      tcp spt:22
+3        0     0 ACCEPT     tcp  --  *      enp0s9  0.0.0.0/0            0.0.0.0/0            multiport dports 22,80,443 state NEW
+4        0     0 ACCEPT     udp  --  *      enp0s9  0.0.0.0/0            0.0.0.0/0            multiport dports 53 state NEW
+5        0     0            tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            state RELATED,ESTABLISHED
+[root@slinux ~]#
+
+# Сохраним правила и перезапустим службу управления файрволлом.
+# Перед сохранением, лучше удалить старый файл состояния правил.
+[root@slinux ~]# rm /etc/sysconfig/iptables
+[root@slinux ~]# iptables-save > /etc/sysconfig/iptables
+[root@slinux ~]# systemctl restart iptables.service
+[root@slinux ~]# systemctl status iptables.service
+● iptables.service - IPv4 firewall with iptables
+     Loaded: loaded (/lib/systemd/system/iptables.service; enabled; vendor preset: disabled)
+     Active: active (exited) since Fri 2024-05-17 00:05:12 MSK; 5s ago
+    Process: 4798 ExecStart=/etc/init.d/iptables start (code=exited, status=0/SUCCESS)
+   Main PID: 4798 (code=exited, status=0/SUCCESS)
+        CPU: 20ms
+
+мая 17 00:05:12 slinux.testlab.lan systemd[1]: Starting IPv4 firewall with iptables...
+мая 17 00:05:12 slinux.testlab.lan iptables[4813]: Applying iptables firewall rules: succeeded
+мая 17 00:05:12 slinux.testlab.lan iptables[4798]: Applying iptables firewall rules: [ DONE ]
+мая 17 00:05:12 slinux.testlab.lan systemd[1]: Finished IPv4 firewall with iptables.
+[root@slinux ~]# iptables -vn -L --line-number
+Chain INPUT (policy DROP 0 packets, 0 bytes)
+num   pkts bytes target     prot opt in     out     source               destination
+1        0     0 ACCEPT     all  --  lo     *       127.0.0.1            127.0.0.1
+2       62  3436 ACCEPT     tcp  --  *      *       192.168.162.100      0.0.0.0/0            tcp dpt:22
+3        0     0 ACCEPT     tcp  --  enp0s3 *       192.168.110.0/24     192.168.110.100      multiport dports 22,80,443 state NEW
+4        0     0 ACCEPT     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            state RELATED,ESTABLISHED
+
+Chain FORWARD (policy DROP 13 packets, 1092 bytes)
+num   pkts bytes target     prot opt in     out     source               destination
+1       13  1092 ACCEPT     all  --  enp0s3 enp0s9  192.168.110.0/24     0.0.0.0/0            state NEW,RELATED,ESTABLISHED
+
+Chain OUTPUT (policy DROP 7 packets, 532 bytes)
+num   pkts bytes target     prot opt in     out     source               destination
+1        0     0 ACCEPT     all  --  *      lo      127.0.0.1            127.0.0.1
+2       44  5876 ACCEPT     tcp  --  *      *       0.0.0.0/0            192.168.162.100      tcp spt:22
+3        0     0 ACCEPT     tcp  --  *      enp0s9  0.0.0.0/0            0.0.0.0/0            multiport dports 22,80,443 state NEW
+4        0     0 ACCEPT     udp  --  *      enp0s9  0.0.0.0/0            0.0.0.0/0            multiport dports 53 state NEW
+5        0     0            tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            state RELATED,ESTABLISHED
+[root@slinux ~]#
+
+# Делаем sync и reboot.
+# Если доступ восстановился)
+# , ! то файрволл готов.
