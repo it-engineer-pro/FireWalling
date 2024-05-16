@@ -1,0 +1,95 @@
+----------------------------------------------------------------------------------------------------------------------
+Бывают ситуации, они рано или поздно настают, когда модуль поддержки IPTables в Alterator уже функционально не
+позволяет получить конфигурацию подходящую под запросы клиента, или ситуацию. Тогда от этого модуля лучше избавиться
+и настроить iptables самостоятельно, через набор команд, или скрипт настройки. Ниже, приведён лог по удалению пакета.
+----------------------------------------------------------------------------------------------------------------------
+
+[sa@monitor ~]$ ssh sa@slinux
+Last login: Wed May 15 20:08:55 2024 from 192.168.192.100
+[sa@slinux ~]$ su -
+Password:
+[root@slinux ~]# systemctl status alteratord.service
+● alteratord.service - Alterator backend server
+     Loaded: loaded (/lib/systemd/system/alteratord.service; enabled; vendor preset: disabled)
+     Active: active (running) since Thu 2024-05-16 19:54:31 MSK; 1min 47s ago
+TriggeredBy: ● alteratord.socket
+   Main PID: 2824 (alteratord)
+      Tasks: 3 (limit: 4647)
+     Memory: 12.5M
+        CPU: 43ms
+     CGroup: /system.slice/alteratord.service
+             └─ 2824 /usr/bin/guile --no-auto-compile /usr/sbin/alteratord
+
+мая 16 19:54:31 slinux.testlab.lan systemd[1]: Started Alterator backend server.
+[root@slinux ~]# apt-cache search alterator-net-iptables | head
+alterator-net-iptables - alterator module for simple iptables configuration
+[root@slinux ~]# whereis alterator-net-iptables
+alterator-net-iptables: /usr/bin/alterator-net-iptables /usr/lib/alterator-net-iptables /usr/share/man/man1/alterator-net-iptables.1.xz
+[root@slinux ~]#
+
+[root@slinux ~]# rpm -q alterator-net-iptables
+alterator-net-iptables-4.19.11-alt1.x86_64
+
+[root@slinux ~]# rpm -qa | grep alterator-net-iptables
+alterator-net-iptables-4.19.11-alt1.x86_64
+
+alterator-net-iptables-4.19.11-alt1.x86_64
+[root@slinux ~]# rpm -qi alterator-net-iptables
+Name        : alterator-net-iptables
+Version     : 4.19.11
+Release     : alt1
+DistTag     : p10+327435.100.3.1
+Architecture: x86_64
+Install Date: Вт 14 мая 2024 18:06:28
+Group       : System/Configuration/Other
+Size        : 527450
+License     : GPL
+Signature   : RSA/SHA512, Вт 22 авг 2023 17:53:19, Key ID 42f343a2c7eb80f9
+Source RPM  : alterator-net-iptables-4.19.11-alt1.src.rpm
+Build Date  : Вт 22 авг 2023 17:53:18
+Build Host  : sem-p10.hasher.altlinux.org
+Relocations : (not relocatable)
+Packager    : Vladislav Zavjalov <slazav@altlinux.org>
+Vendor      : ALT Linux Team
+URL         : http://wiki.sisyphus.ru/Alterator
+Summary     : alterator module for simple iptables configuration
+Description :
+Alterator module for simple iptables configuration
+[root@slinux ~]#
+
+[root@slinux ~]# apt-get remove alterator-net-iptables
+Чтение списков пакетов... Завершено
+Построение дерева зависимостей... Завершено
+Следующие пакеты будут УДАЛЕНЫ:
+  alterator-net-iptables alterator-ulogd
+0 будет обновлено, 0 новых установлено, 2 пакетов будет удалено и 0 не будет обновлено.
+Необходимо получить 0B архивов.
+После распаковки будет освобождено 541kB дискового пространства.
+Продолжить? [Y/n] Y
+Совершаем изменения...
+Подготовка...                                                                                  #################################################################################################### [100%]
+Очистка / удаление...
+1: alterator-ulogd-2.0.1-alt1                                                                  #################################################################################################### [ 50%]
+2: alterator-net-iptables-4.19.11-alt1                                                         ###########################################################предупреждение: /etc/alterator/net-iptables/ir.conf сохранен как /etc/alterator/net-iptables/ir.conf.rpmsave
+##########предупреждение: /etc/alterator/net-iptables.conf сохранен как /etc/alterator/net-iptables.conf.rpmsave
+############################### [100%]
+Завершено.
+[root@slinux ~]#
+
+[root@slinux ~]# systemctl restart alteratord.service
+[root@slinux ~]# systemctl restart ahttpd.service
+[root@slinux ~]#
+
+[root@slinux ~]# rpm -qa | grep alterator-net-iptables
+[root@slinux ~]#
+
+[root@slinux ~]# whereis alterator-net-iptables
+alterator-net-iptables:
+
+
+
+
+
+
+
+
