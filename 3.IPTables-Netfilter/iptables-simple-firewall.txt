@@ -120,8 +120,11 @@ num   pkts bytes target     prot opt in     out     source               destina
 
 # Сохраним правила и перезапустим службу управления файрволлом.
 # Перед сохранением, лучше удалить старый файл состояния правил.
+# А сохранённый новый скопировать в отдельный файл /etc/sysconfig/iptables_
+# После проверки.
 [root@slinux ~]# rm /etc/sysconfig/iptables
 [root@slinux ~]# iptables-save > /etc/sysconfig/iptables
+[root@slinux ~]# cp /etc/sysconfig/iptables /etc/sysconfig/iptables_
 [root@slinux ~]# systemctl restart iptables.service
 [root@slinux ~]# systemctl status iptables.service
 ● iptables.service - IPv4 firewall with iptables
