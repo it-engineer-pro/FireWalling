@@ -196,7 +196,7 @@ num  target     prot opt source               destination
 Chain OUTPUT (policy DROP)
 num  target     prot opt source               destination         
 1    ACCEPT     all  --  127.0.0.1            127.0.0.1           
-2    ACCEPT     tcp  --  0.0.0.0/0            192.168.192.100      tcp spt:22
+2    ACCEPT     tcp  --  0.0.0.0/0            192.168.162.100      tcp spt:22
 3    ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            multiport dports 22,80,443 state NEW
 4    ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0            multiport dports 53 state NEW
 5    ACCEPT     icmp --  192.168.110.100      192.168.110.0/24     icmptype 0 state RELATED,ESTABLISHED
