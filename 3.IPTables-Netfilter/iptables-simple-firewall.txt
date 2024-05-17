@@ -8,7 +8,7 @@ iptables -A OUTPUT -o lo --source 127.0.0.1 --destination 127.0.0.1 -j ACCEPT
 # Добавим правила для доступа с доверенного адреса по SSH.
 # Интерфейс доступа в правиле один, поэтому, если требуется работать со шлюзом из разных сетей,
 # то стоит этот вопрос оформить дополнительным правилом.
-iptables -A INPUT -p tcp -i enp0s9 --dport 22 --source 192.168.62.123 -j ACCEPT
+iptables -A INPUT -p tcp -i enp0s9 --dport 22 --source 192.168.62.123 --destination 192.168.62.100 -j ACCEPT
 iptables -A OUTPUT -p tcp -o enp0s9 --sport 22 --destination 192.168.62.123 -j ACCEPT
 
 # Поменяем политику по умолчанию по работе с соединениями.
@@ -161,4 +161,46 @@ num   pkts bytes target     prot opt in     out     source               destina
 
 # Делаем sync и reboot.
 # Если доступ восстановился)
-# , ! то файрволл готов.
+# , ! то файрволл готов.)
+
+# После убеждаемся в том, что некоторые функции сети нам оказались нужны, а я про них забыл.
+# Например, работа протокола ICMP, локальный Unbound установленный на файрволле, и тп.
+# Поэтому, правим, сохраняем и проверяем. Правим, сохраняем и проверяем.
+iptables -A FORWARD -p icmp --icmp-type echo-request -i enp0s3 -o enp0s9 -s 192.168.110.0/24 -d 0.0.0.0/0 -j ACCEPT
+iptables -A FORWARD -p icmp --icmp-type echo-reply -i enp0s9 -o enp0s3 -s 0.0.0.0/0 -d 192.168.110.0/24 -j ACCEPT
+#
+iptables -I INPUT 4 -p udp -i enp0s3 -s 192.168.110.0/24 -d 192.168.110.100 -m multiport --dports 53,123 -m state --state NEW -j ACCEPT
+#
+iptables -A INPUT -p icmp --icmp-type echo-request -i enp0s3 -s 192.168.110.0/24 -d 192.168.110.100 -m state --state NEW,RELATED,ESTABLISHED -j ACCEPT
+iptables -A OUTPUT -p icmp --icmp-type echo-reply -o enp0s3 -s 192.168.110.100 -d 192.168.110.0/24 -m state --state RELATED,ESTABLISHED -j ACCEPT
+#
+
+# Подгоняем правила примерно до такого состояния:
+[root@slinux ~]# iptables -t filter -L --line-numbers -n
+Chain INPUT (policy DROP)
+num  target     prot opt source               destination         
+1    ACCEPT     all  --  127.0.0.1            127.0.0.1           
+2    ACCEPT     tcp  --  192.168.192.100      0.0.0.0/0            tcp dpt:22
+3    ACCEPT     tcp  --  192.168.110.0/24     192.168.110.100      multiport dports 22,80,443 state NEW
+4    ACCEPT     udp  --  192.168.110.0/24     192.168.110.100      multiport dports 53,123 state NEW
+5    ACCEPT     icmp --  192.168.110.0/24     192.168.110.100      icmptype 8 state NEW,RELATED,ESTABLISHED
+6    ACCEPT     tcp  --  192.168.110.0/24     192.168.110.100      state RELATED,ESTABLISHED
+7    ACCEPT     udp  --  192.168.110.0/24     192.168.110.100      state RELATED,ESTABLISHED
+
+Chain FORWARD (policy DROP)
+num  target     prot opt source               destination         
+1    ACCEPT     all  --  192.168.110.0/24     0.0.0.0/0            state NEW,RELATED,ESTABLISHED
+2    ACCEPT     icmp --  192.168.110.0/24     0.0.0.0/0            icmptype 8
+3    ACCEPT     icmp --  0.0.0.0/0            192.168.110.0/24     icmptype 0
+
+Chain OUTPUT (policy DROP)
+num  target     prot opt source               destination         
+1    ACCEPT     all  --  127.0.0.1            127.0.0.1           
+2    ACCEPT     tcp  --  0.0.0.0/0            192.168.192.100      tcp spt:22
+3    ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            multiport dports 22,80,443 state NEW
+4    ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0            multiport dports 53 state NEW
+5    ACCEPT     icmp --  192.168.110.100      192.168.110.0/24     icmptype 0 state RELATED,ESTABLISHED
+
+# Итоговое состояние файрволла зависит от глубины понимания потребностей.
+# Выше показаны лишь примерные шаги для достижения требований.
+# В случае неудачной попытки настройки, достаточно перезапустить шлюз, и СОХРАНЁННЫЕ правила будут восстановлены.
