@@ -1,0 +1,44 @@
+[root@slinux ~]# mkdir /etc/sysconfig/_iptables
+[root@slinux ~]# cd /etc/sysconfig/_iptables
+[root@slinux _iptables]# pwd
+/etc/sysconfig/_iptables
+[root@slinux _iptables]# touch _1-IPT-flash-script.sh
+[root@slinux _iptables]# touch _2-IPT-base-script.sh
+[root@slinux _iptables]# touch _3-IPT-setup-script.sh
+[root@slinux _iptables]# chmod +x _1-IPT-flash-script.sh 
+[root@slinux _iptables]# chmod +x _2-IPT-base-script.sh
+[root@slinux _iptables]# chmod +x _3-IPT-setup-script.sh
+[root@slinux _iptables]# 
+
+[root@slinux _iptables]# ls -la
+итого 8
+drwxr-xr-x 2 root root 4096 мая 17 23:19 .
+drwxr-xr-x 6 root root 4096 мая 17 23:16 ..
+-rwxr-xr-x 1 root root    0 мая 17 23:18 _1-IPT-flash-script.sh
+-rwxr-xr-x 1 root root    0 мая 17 23:19 _2-IPT-base-script.sh
+-rwxr-xr-x 1 root root    0 мая 17 23:19 _3-IPT-setup-script.sh
+[root@slinux _iptables]# 
+
+cat > testfile.txt <<<'#
+# Reset All Rules
+#
+iptables -F
+iptables -X
+iptables -Z
+iptables -t nat -F
+iptables -t nat -X
+iptables -t mangle -F
+iptables -t mangle -X
+iptables -t raw -F
+iptables -t raw -X
+iptables --flush
+iptables --table nat --flush
+iptables --delete-chain
+iptables --table nat --delete-chain
+#
+iptables -P INPUT ACCEPT
+iptables -P FORWARD ACCEPT
+iptables -P OUTPUT ACCEPT
+#
+echo "Firewall completely stopped! WARNING: THIS HOST HAS NO FIREWALL RUNNING."
+#'
