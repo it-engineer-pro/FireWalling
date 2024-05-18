@@ -2,29 +2,31 @@
 # Подразумевается, наличие в системе пакетов:iptables,iptables-save.
 # 
 
-0.
-[root@slinux ~]# mkdir /etc/sysconfig/_iptables
+#0.
+[root@slinux ~]# mkdir -p /etc/sysconfig/_iptables
 [root@slinux ~]# cd /etc/sysconfig/_iptables
 [root@slinux _iptables]# pwd
 /etc/sysconfig/_iptables
-[root@slinux _iptables]# touch _1-IPT-flash-script.sh
-[root@slinux _iptables]# touch _2-IPT-base-script.sh
-[root@slinux _iptables]# touch _3-IPT-setup-script.sh
-[root@slinux _iptables]# chmod +x _1-IPT-flash-script.sh 
-[root@slinux _iptables]# chmod +x _2-IPT-base-script.sh
-[root@slinux _iptables]# chmod +x _3-IPT-setup-script.sh
-[root@slinux _iptables]# 
+[root@slinux _iptables]# touch _1-IPT-flash-script.sh && chmod +x _1-IPT-flash-script.sh
+[root@slinux _iptables]# touch _2-IPT-base-script.sh && chmod +x _2-IPT-base-script.sh
+[root@slinux _iptables]# touch _3-IPT-setup-script.sh && chmod +x _3-IPT-setup-script.sh
+[root@slinux _iptables]# touch _4-IPT-debug-stateful-script.sh && chmod +x _4-IPT-debug-stateful-script.sh
+[root@slinux _iptables]# touch _5-IPT-debug-stateless-script.sh && chmod +x _5-IPT-debug-stateless-script.sh
+[root@slinux _iptables]# touch _6-IPT-debug-server-services-script.sh && chmod +x _6-IPT-debug-server-services-script.sh
 
 [root@slinux _iptables]# ls -la
-итого 8
-drwxr-xr-x 2 root root 4096 мая 17 23:19 .
+итого 16
+drwxr-xr-x 2 root root 4096 мая 18 18:33 .
 drwxr-xr-x 6 root root 4096 мая 17 23:16 ..
--rwxr-xr-x 1 root root    0 мая 17 23:18 _1-IPT-flash-script.sh
--rwxr-xr-x 1 root root    0 мая 17 23:19 _2-IPT-base-script.sh
+-rwxr-xr-x 1 root root  995 мая 18 11:46 _1-IPT-flash-script.sh
+-rwxr-xr-x 1 root root 1713 мая 18 11:46 _2-IPT-base-script.sh
 -rwxr-xr-x 1 root root    0 мая 17 23:19 _3-IPT-setup-script.sh
+-rwxr-xr-x 1 root root    0 мая 18 18:33 _4-IPT-debug-stateful-script.sh
+-rwxr-xr-x 1 root root    0 мая 18 18:33 _5-IPT-debug-stateless-script.sh
+-rwxr-xr-x 1 root root    0 мая 18 18:33 _6-IPT-debug-server-services-script.sh
 [root@slinux _iptables]# 
 
-1. 
+#1. 
 cat > _1-IPT-flash-script.sh <<<'!/bin/bash
 #======================================================================================================================
 # Flash all chains and rules and setup ACCEPT ALL policies
@@ -56,7 +58,7 @@ echo "Firewall completely stopped! WARNING: THIS HOST HAS NO FIREWALL RUNNING!"
 
 =TO THIS LINE==========================================================================================================
 
-2.
+#2.
 cat > _2-IPT-base-script.sh <<<'!/bin/bash
 #======================================================================================================================
 # Simple rules for basic iptables setup.
@@ -80,9 +82,6 @@ iptables -A FORWARD -i enp0s10 -o enp0s9 -s 192.168.110.0/24 -j ACCEPT
 
 iptables -A FORWARD -i enp0s9 -o enp0s8 -m state --state ESTABLISHED,RELATED -j ACCEPT
 iptables -A FORWARD -i enp0s9 -o enp0s10 -m state --state ESTABLISHED,RELATED -j ACCEPT
-
-#======================================================================================================================
-
 #======================================================================================================================
 echo "Firewall works with simple rules! WARNING: BE CAREFUL!"
 #======================================================================================================================
@@ -90,4 +89,4 @@ echo "Firewall works with simple rules! WARNING: BE CAREFUL!"
 
 =TO THIS LINE==========================================================================================================
 
-3.
+#3.
