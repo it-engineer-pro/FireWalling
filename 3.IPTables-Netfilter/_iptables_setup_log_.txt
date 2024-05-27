@@ -1,6 +1,6 @@
 # Простейшая подготовка к настройке сетевого фильтра
 # Подразумевается, наличие в системе пакетов:iptables,iptables-save.
-# 
+#
 
 #0.
 [root@slinux ~]# mkdir -p /etc/sysconfig/_iptables
@@ -24,9 +24,9 @@ drwxr-xr-x 6 root root 4096 мая 17 23:16 ..
 -rwxr-xr-x 1 root root    0 мая 18 18:33 _4-IPT-debug-stateful-script.sh
 -rwxr-xr-x 1 root root    0 мая 18 18:33 _5-IPT-debug-stateless-script.sh
 -rwxr-xr-x 1 root root    0 мая 18 18:33 _6-IPT-debug-server-services-script.sh
-[root@slinux _iptables]# 
+[root@slinux _iptables]#
 
-#1. 
+#1.
 cat > _1-IPT-flash-script.sh <<<'#!/bin/bash
 #======================================================================================================================
 # Flash all chains and rules and setup ACCEPT ALL policies
@@ -161,6 +161,13 @@ DHCP_CLIENT="0"                          # Not used.
 IPT="/sbin/iptables"                     # Location of iptables on your system.
 #LPB_IF="lo"                             # Local Network Interface. Not Acceptable Now.
                                          # Use lo
+#
+NEW="--ctstate NEW"                      #
+NES="--ctstate NEW,ESTABLISHED"          #
+NER="--ctstate NEW,ESTABLISHED,RELATED"  #
+ESR="--ctstate ESTABLISHED,RELATED"      #
+EST="--ctstate ESTABLISHED"              #
+#
 LPB_SN="127.0.0.0/8"                     # Reserved loopback address range.
 CLS_A="10.0.0.0/8"                       # Class A private networks.
 CLS_B="172.16.0.0/12"                    # Class B private networks.
@@ -253,7 +260,7 @@ $IPT -A OUTPUT -p ALL -o lo -s $LPB_SN -d $LPB_SN -j ACCEPT
 
 ########################################################################
 # Remote SSH and ICMP/Traceroute Support for setup and debug rules.
-# SSH IN from SUPPORT. 
+# SSH IN from SUPPORT.
 #
 $IPT -A INPUT  -p tcp -s $SSH_CLI1 -i $WAN_IF \
                --sport $UNPR_PRTS --dport $SSH_LCLP \
@@ -530,7 +537,7 @@ $IPT -A FORWARD -i $WAN_IF -s $WAN_IP -j LOG_DROP
 
 ########################################################################
 # Define custom chain LOGGING for diagnostic and control.
-# Packets with higher then limit will be rejected 
+# Packets with higher then limit will be rejected
 # when not redirected to other chains.
 #
 #$IPT -N LOGGING
