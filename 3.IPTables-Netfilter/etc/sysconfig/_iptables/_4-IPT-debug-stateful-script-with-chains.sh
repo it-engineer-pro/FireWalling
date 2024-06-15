@@ -203,11 +203,12 @@ $IPT -P OUTPUT DROP
 # _DMZ_TRCR_  # -- DMZ traceroute answers.
 # _DMZ_ICMP_  # -- DMZ ping answers.
 
-USER_CHAINS="_LCL_PASS_ _LOG_PASS_ _ESR_PASS_ _LOG_DROP_ "
+USER_CHAINS="_LCL_PASS_ _LOG_PASS_ _ESR_PASS_ _LOG_DROP_ \
+            _WAN_ICMP_ _WAN_TRCR_ _WAN_SSH_ _WAN_WWW_ "
 # \
 #            _FWD_IN_ _FWD_OUT_ _FWD_DMZ_ _WAN_IN_ _WAN_OUT_ \
 #            _LAN_IN_ _LAN_OUT_ _DMZ_IN_ _DMZ_OUT_ \
-#            _SRV_LOCAL_ _WAN_ICMP_ _WAN_TRCR_ _WAN_SSH_ _WAN_WWW_ \
+#            _SRV_LOCAL_ \
 #            _LAN_ICMP_ \
 #            _DMZ_TRCR_ \
 #            _DMZ_ICMP_ "
@@ -223,172 +224,172 @@ done
 ########################################################################
 # LocalHost Allow
 #
-$IPT -A INPUT -i lo --source 127.0.0.1 --destination 127.0.0.1 -j ACCEPT
+#$IPT -A INPUT -i lo --source 127.0.0.1 --destination 127.0.0.1 -j ACCEPT
 #
 # Relax Rules to avoid excess traffic logging.
 # We intend that Border Bastion Host don't have any services on it.
 # _LCL_PASS_
-#$IPT -A INPUT  -p ALL -i lo -s $LPB_SN -d $LPB_SN -j _LCL_PASS_
-#$IPT -A OUTPUT -p ALL -o lo -s $LPB_SN -d $LPB_SN -j _LCL_PASS_
+$IPT -A INPUT  -p ALL -i lo -s $LPB_SN -d $LPB_SN -j _LCL_PASS_
+$IPT -A OUTPUT -p ALL -o lo -s $LPB_SN -d $LPB_SN -j _LCL_PASS_
 #
-#$IPT -A INPUT  -p ALL -i lo -s $INT_IP -d $LPB_SN -j _LCL_PASS_
-#$IPT -A INPUT  -p ALL -i lo -s $DMZ_IP -d $LPB_SN -j _LCL_PASS_
+$IPT -A INPUT  -p ALL -i lo -s $INT_IP -d $LPB_SN -j _LCL_PASS_
+$IPT -A INPUT  -p ALL -i lo -s $DMZ_IP -d $LPB_SN -j _LCL_PASS_
 #
-#$IPT -A INPUT  -p ALL -i $INT_IF -s $INT_IP -d $INT_IP -j _LCL_PASS_
-#$IPT -A INPUT  -p ALL -i $DMZ_IF -s $DMZ_IP -d $DMZ_IP -j _LCL_PASS_
+$IPT -A INPUT  -p ALL -i $INT_IF -s $INT_IP -d $INT_IP -j _LCL_PASS_
+$IPT -A INPUT  -p ALL -i $DMZ_IF -s $DMZ_IP -d $DMZ_IP -j _LCL_PASS_
 #
-#$IPT -A _LCL_PASS_ -j ACCEPT
-#$IPT -A _LCL_PASS_ -j DROP
+$IPT -A _LCL_PASS_ -j ACCEPT
+$IPT -A _LCL_PASS_ -j DROP
 ########################################################################
 #
 # Allow Est/Rel (Logging for debug steps, and should be disabled).
 #
-$IPT -t filter -A INPUT -p tcp -m conntrack $ESR -j ACCEPT
-$IPT -t filter -A OUTPUT -p tcp -m conntrack $ESR -j ACCEPT
-$IPT -t filter -A FORWARD -p tcp -m conntrack $ESR -j ACCEPT
-#$IPT -t filter -A INPUT -i $WAN_IF -m conntrack $ESR -j _ESR_PASS_
-#$IPT -t filter -A INPUT -i $DMZ_IF -s $DMZ_SN -m conntrack $ESR -j _ESR_PASS_
-#$IPT -t filter -A INPUT -i $INT_IF -s $INT_SN -m conntrack $ESR -j _ESR_PASS_
-#$IPT -t filter -A OUTPUT -m conntrack $ESR -j _ESR_PASS_
-#$IPT -t filter -A FORWARD -i $WAN_IF -o $DMZ_IF -m conntrack $ESR -j _ESR_PASS_
-#$IPT -t filter -A FORWARD -i $WAN_IF -o $INT_IF -m conntrack $ESR -j _ESR_PASS_
-#$IPT -t filter -A FORWARD -i $INT_IF -o $WAN_IF -s $INT_SN -m conntrack $ESR -j _ESR_PASS_
-#$IPT -t filter -A FORWARD -i $INT_IF -o $DMZ_IF -s $INT_SN -d $DMZ_SN -m conntrack $ESR -j _ESR_PASS_
-#$IPT -t filter -A FORWARD -i $DMZ_IF -o $WAN_IF -s $DMZ_SN -m conntrack $ESR -j _ESR_PASS_
-#$IPT -t filter -A FORWARD -i $DMZ_IF -o $INT_IF -s $DMZ_SN -d $INT_SN -m conntrack $ESR -j _ESR_PASS_
-#$IPT -A _ESR_PASS_ -m limit --limit 1800/min -j LOG --log-prefix "IPT-ESRPass: " --log-level 4
-#$IPT -A _ESR_PASS_ -j ACCEPT
+#$IPT -t filter -A INPUT -p tcp -m conntrack $ESR -j ACCEPT
+#$IPT -t filter -A OUTPUT -p tcp -m conntrack $ESR -j ACCEPT
+#$IPT -t filter -A FORWARD -p tcp -m conntrack $ESR -j ACCEPT
+$IPT -t filter -A INPUT -i $WAN_IF -m conntrack $ESR -j _ESR_PASS_
+$IPT -t filter -A INPUT -i $DMZ_IF -s $DMZ_SN -m conntrack $ESR -j _ESR_PASS_
+$IPT -t filter -A INPUT -i $INT_IF -s $INT_SN -m conntrack $ESR -j _ESR_PASS_
+$IPT -t filter -A OUTPUT -m conntrack $ESR -j _ESR_PASS_
+$IPT -t filter -A FORWARD -i $WAN_IF -o $DMZ_IF -m conntrack $ESR -j _ESR_PASS_
+$IPT -t filter -A FORWARD -i $WAN_IF -o $INT_IF -m conntrack $ESR -j _ESR_PASS_
+$IPT -t filter -A FORWARD -i $INT_IF -o $WAN_IF -s $INT_SN -m conntrack $ESR -j _ESR_PASS_
+$IPT -t filter -A FORWARD -i $INT_IF -o $DMZ_IF -s $INT_SN -d $DMZ_SN -m conntrack $ESR -j _ESR_PASS_
+$IPT -t filter -A FORWARD -i $DMZ_IF -o $WAN_IF -s $DMZ_SN -m conntrack $ESR -j _ESR_PASS_
+$IPT -t filter -A FORWARD -i $DMZ_IF -o $INT_IF -s $DMZ_SN -d $INT_SN -m conntrack $ESR -j _ESR_PASS_
+$IPT -A _ESR_PASS_ -m limit --limit 1800/min -j LOG --log-prefix "IPT-ESRPass: " --log-level 4
+$IPT -A _ESR_PASS_ -j ACCEPT
 #
 ########################################################################
 
 ########################################################################
 # Rules for cleaning traffic.
 ########################################################################
-#$IPT -A INPUT  -m state --state INVALID -j LOG --log-prefix "IPT-LogINVALID-input: "
-#$IPT -A INPUT  -m state --state INVALID -j DROP
-#$IPT -A OUTPUT -m state --state INVALID -j LOG --log-prefix "IPT-LogINVALID-output: "
-#$IPT -A OUTPUT -m state --state INVALID -j DROP
-#$IPT -A FORWARD -m state --state INVALID -j LOG --log-prefix "IPT-LogINVALID-forward: "
-#$IPT -A FORWARD -m state --state INVALID -j DROP
+$IPT -A INPUT  -m state --state INVALID -j LOG --log-prefix "IPT-LogINVALID-input: "
+$IPT -A INPUT  -m state --state INVALID -j DROP
+$IPT -A OUTPUT -m state --state INVALID -j LOG --log-prefix "IPT-LogINVALID-output: "
+$IPT -A OUTPUT -m state --state INVALID -j DROP
+$IPT -A FORWARD -m state --state INVALID -j LOG --log-prefix "IPT-LogINVALID-forward: "
+$IPT -A FORWARD -m state --state INVALID -j DROP
 
 #
 # Drop bad packets in INPUT chain. Stealth Scans and TCP State Flags.
 # Christmas tree packets
-#$IPT -A INPUT -p tcp -m tcp --tcp-flags ALL FIN,PSH,URG -j _LOG_DROP_
+$IPT -A INPUT -p tcp -m tcp --tcp-flags ALL FIN,PSH,URG -j _LOG_DROP_
 #
 # Invalid TCP packets
 # New incoming TCP connection packets without SYN flag set
-#$IPT -A INPUT -p tcp ! --syn -m state --state NEW -j _LOG_DROP_
+$IPT -A INPUT -p tcp ! --syn -m state --state NEW -j _LOG_DROP_
 #
 # New state packet with SYN,ACK set
-#$IPT -A INPUT -p tcp -m tcp --tcp-flags SYN,ACK SYN,ACK -m state --state NEW -j _LOG_DROP_
+$IPT -A INPUT -p tcp -m tcp --tcp-flags SYN,ACK SYN,ACK -m state --state NEW -j _LOG_DROP_
 #
 # TCP packets with SYN,FIN flag set. SYN and FIN are both set.
-#$IPT -A INPUT -p tcp -m tcp --tcp-flags SYN,FIN SYN,FIN -j _LOG_DROP_
+$IPT -A INPUT -p tcp -m tcp --tcp-flags SYN,FIN SYN,FIN -j _LOG_DROP_
 #
 # SYN and RST are both set.
-#$IPT -A INPUT -p tcp --tcp-flags SYN,RST SYN,RST -j _LOG_DROP_
+$IPT -A INPUT -p tcp --tcp-flags SYN,RST SYN,RST -j _LOG_DROP_
 #
 # FIN and RST are both set.
-#$IPT -A INPUT -p tcp --tcp-flags FIN,RST FIN,RST -j _LOG_DROP_
+$IPT -A INPUT -p tcp --tcp-flags FIN,RST FIN,RST -j _LOG_DROP_
 #
 # FIN is the only bit set, without the expected accompanying ACK.
-#$IPT -A INPUT -p tcp --tcp-flags ACK,FIN FIN -j _LOG_DROP_
+$IPT -A INPUT -p tcp --tcp-flags ACK,FIN FIN -j _LOG_DROP_
 #
 # PSH is the only bit set, without the expected accompanying ACK.
-#$IPT -A INPUT -p tcp --tcp-flags ACK,PSH PSH -j DROP
+$IPT -A INPUT -p tcp --tcp-flags ACK,PSH PSH -j DROP
 #
 # URG is the only bit set, without the expected accompanying ACK.
-#$IPT -A INPUT -p tcp --tcp-flags ACK,URG URG -j DROP
+$IPT -A INPUT -p tcp --tcp-flags ACK,URG URG -j DROP
 #
 # Null packets. All of the bits are cleared.
-#$IPT -A INPUT -p tcp -m tcp --tcp-flags ALL NONE -j _LOG_DROP_
+$IPT -A INPUT -p tcp -m tcp --tcp-flags ALL NONE -j _LOG_DROP_
 #
 # Log and drop spoofed packets pretending to be from the external interface's IP address.
-#$IPT -A INPUT -i $WAN_IF -s $WAN_IP -j _LOG_DROP_
+$IPT -A INPUT -i $WAN_IF -s $WAN_IP -j _LOG_DROP_
 #
 # Log and drop packets claiming to be from a Class A private network
-#$IPT -A INPUT -i $WAN_IF -s $CLS_A -j _LOG_DROP_
+$IPT -A INPUT -i $WAN_IF -s $CLS_A -j _LOG_DROP_
 #
 # Log and drop packets claiming to be from a Class B private network
-#$IPT -A INPUT -i $WAN_IF -s $CLS_B -j _LOG_DROP_
+$IPT -A INPUT -i $WAN_IF -s $CLS_B -j _LOG_DROP_
 
 # Log and drop packets claiming to be from a Class C private network
-#$IPT -A INPUT -i $WAN_IF -s $CLS_C -j _LOG_DROP_
+$IPT -A INPUT -i $WAN_IF -s $CLS_C -j _LOG_DROP_
 #
 # Log and drop packets claiming to be from the loopback interface
-#$IPT -A INPUT -i $WAN_IF -s $LPB_SN -j _LOG_DROP_
+$IPT -A INPUT -i $WAN_IF -s $LPB_SN -j _LOG_DROP_
 #
 # Log and drop malformed broadcast packets.
-#$IPT -A INPUT -i $WAN_IF -s $BCST_DEST -j _LOG_DROP_
-#$IPT -A INPUT -i $WAN_IF -d $BCST_SRC -j _LOG_DROP_
+$IPT -A INPUT -i $WAN_IF -s $BCST_DEST -j _LOG_DROP_
+$IPT -A INPUT -i $WAN_IF -d $BCST_SRC -j _LOG_DROP_
 #
 # Log and drop limited broadcasts.
-#$IPT -A INPUT -i $WAN_IF -d $BCST_DEST -j _LOG_DROP_
+$IPT -A INPUT -i $WAN_IF -d $BCST_DEST -j _LOG_DROP_
 #
 # Log and drop directed broadcasts.
 # Used to map networks and in Denial of Service attacks
-#$IPT -A INPUT -i $WAN_IF -d $WAN_SN -j _LOG_DROP_
-#$IPT -A INPUT -i $WAN_IF -d $WAN_BR -j _LOG_DROP_
+$IPT -A INPUT -i $WAN_IF -d $WAN_SN -j _LOG_DROP_
+$IPT -A INPUT -i $WAN_IF -d $WAN_BR -j _LOG_DROP_
 #
 # Log and drop Class D multicast addresses.
 # Illegal as a source address.
-#$IPT -A INPUT -i $WAN_IF -s $CLS_D_MLTCST -j _LOG_DROP_
+$IPT -A INPUT -i $WAN_IF -s $CLS_D_MLTCST -j _LOG_DROP_
 #
 # The next rule denies multicast packets carrying a non-UDP protocol
-#$IPT -A INPUT -i $WAN_IF ! -p udp -d $CLS_D_MLTCST -j _LOG_DROP_
-#$IPT -A INPUT -i $WAN_IF   -p udp -d $CLS_D_MLTCST -j ACCEPT
+$IPT -A INPUT -i $WAN_IF ! -p udp -d $CLS_D_MLTCST -j _LOG_DROP_
+$IPT -A INPUT -i $WAN_IF   -p udp -d $CLS_D_MLTCST -j ACCEPT
 #
 # Log and drop Class E reserved IP addresses
-#$IPT -A INPUT -i $WAN_IF -s $CLS_E_RESNET -j _LOG_DROP_
+$IPT -A INPUT -i $WAN_IF -s $CLS_E_RESNET -j _LOG_DROP_
 #
 # Can't be blocked unilaterally with DHCP.
-#$IPT -A INPUT -i $WAN_IF -s $BCST_SRC_NET -j _LOG_DROP_
+$IPT -A INPUT -i $WAN_IF -s $BCST_SRC_NET -j _LOG_DROP_
 #
 # Link Local Network..
-#$IPT -A INPUT -i $WAN_IF -s $LINK_LCL -j _LOG_DROP_
+$IPT -A INPUT -i $WAN_IF -s $LINK_LCL -j _LOG_DROP_
 #
 # TEST-NET.
-#$IPT -A INPUT -i $WAN_IF -s $TEST_NET -j _LOG_DROP_
+$IPT -A INPUT -i $WAN_IF -s $TEST_NET -j _LOG_DROP_
 #
 # Silent Drop External Windows Clients Broadcast Traffic.
-#$IPT -A INPUT -p UDP -i $WAN_IF -d $WAN_BR --destination-port 135:139 -j DROP
+$IPT -A INPUT -p UDP -i $WAN_IF -d $WAN_BR --destination-port 135:139 -j DROP
 #
 # If we get DHCP requests from the Outside of our network, our logs will
 # be swamped as well. This rule will block them from getting logged.
-#$IPT -A INPUT -p UDP -i $WAN_IF -d $BCST_DEST --destination-port 67:68 -j DROP
+$IPT -A INPUT -p UDP -i $WAN_IF -d $BCST_DEST --destination-port 67:68 -j DROP
 
 #
 # Drop and Log any packets that interal by default.
 # X Window connection establishment
-#$IPT -A OUTPUT -o $WAN_IF -p tcp --syn --destination-port $XWINDOW_PORTS -j _LOG_DROP_
+$IPT -A OUTPUT -o $WAN_IF -p tcp --syn --destination-port $XWINDOW_PORTS -j _LOG_DROP_
 # X Window: incoming connection attempt
-#$IPT -A INPUT -i $WAN_IF -p tcp --syn --destination-port $XWINDOW_PORTS -j _LOG_DROP_
+$IPT -A INPUT -i $WAN_IF -p tcp --syn --destination-port $XWINDOW_PORTS -j _LOG_DROP_
 #
-#$IPT -A OUTPUT -o $WAN_IF -p tcp -m multiport --destination-port \
-#                  $NFS_PORT,$OPENWINDOWS_PORT,$SOCKS_PORT,$SQUID_PORT \
-#                  --syn -j _LOG_DROP_
+$IPT -A OUTPUT -o $WAN_IF -p tcp -m multiport --destination-port \
+                  $NFS_PORT,$OPENWINDOWS_PORT,$SOCKS_PORT,$SQUID_PORT \
+                  --syn -j _LOG_DROP_
 #
-#$IPT -A INPUT -i $WAN_IF -p tcp -m multiport --destination-port \
-#                  $NFS_PORT,$OPENWINDOWS_PORT,$SOCKS_PORT,$SQUID_PORT \
-#                  --syn -j _LOG_DROP_
+$IPT -A INPUT -i $WAN_IF -p tcp -m multiport --destination-port \
+                  $NFS_PORT,$OPENWINDOWS_PORT,$SOCKS_PORT,$SQUID_PORT \
+                  --syn -j _LOG_DROP_
 
 ########################################################################
 # INPUT chain,  Drop Brutforsers.
 #
-#$IPT -A INPUT -p tcp -m multiport --dports $SSH_LCLP,$SSH_DMZP,$SSH_INTP,$SSH_STDP \
-#                   -m recent --set --name SEC --syn -m state --state NEW -j _WAN_SSH_
+$IPT -A INPUT -p tcp -m multiport --dports $SSH_LCLP,$SSH_DMZP,$SSH_INTP,$SSH_STDP \
+                   -m recent --set --name SEC --syn -m state --state NEW -j _WAN_SSH_
 #
-#$IPT -A _WAN_SSH_ -p tcp -m multiport --dports $SSH_LCLP,$SSH_DMZP,$SSH_INTP,$SSH_STDP \
-#                  -m recent --update --seconds 60 --hitcount 2 \
-#                  --rttl --name SEC -j LOG --log-prefix "BRUTE FORCE "
+$IPT -A _WAN_SSH_ -p tcp -m multiport --dports $SSH_LCLP,$SSH_DMZP,$SSH_INTP,$SSH_STDP \
+                  -m recent --update --seconds 60 --hitcount 2 \
+                  --rttl --name SEC -j LOG --log-prefix "BRUTE FORCE "
 #
-#$IPT -A _WAN_SSH_ -p tcp -m multiport --dports $SSH_LCLP,$SSH_DMZP,$SSH_INTP,$SSH_STDP \
-#                  -m recent --update --seconds 60 --hitcount 2 --rttl --name SEC -j _LOG_DROP_
+$IPT -A _WAN_SSH_ -p tcp -m multiport --dports $SSH_LCLP,$SSH_DMZP,$SSH_INTP,$SSH_STDP \
+                  -m recent --update --seconds 60 --hitcount 2 --rttl --name SEC -j _LOG_DROP_
 
 #
 # Remote Control Rules (tcp/22 >> ssh/2220 external/DMZ port access)
-# From Remote Support and Local DMZ JH Server
+# White List for remote support from Remote Support and Local DMZ JH Server
 #
 $IPT -A INPUT -s $SSH_CLI1 -p tcp --match multiport --sports $UNPR_PRTS -d $WAN_IP \
               --match multiport --dports $SSH_LCLP --syn -m conntrack $NEW -i $WAN_IF -j ACCEPT
@@ -407,7 +408,7 @@ $IPT -A OUTPUT -p tcp -s $DMZ_IP --match multiport --sports $SSH_LCLP -d $SSH_DM
 $IPT -A INPUT -p icmp --icmp-type echo-reply -m limit --limit \
               60/minute --limit-burst 5 -j DROP
 $IPT -A INPUT -m limit --limit 60/minute --limit-burst 3 -j LOG \
-              --log-level DEBUG --log-prefix "IPT-INPUT-packet-died: "
+              --log-level 7 --log-prefix "IPT-INPUT-packet-died: "
 
 #
 # ICMP Out. Not tracing at all.
@@ -476,13 +477,13 @@ $IPT -A FORWARD -p tcp -i $WAN_IF -s $SSH_CLI1 -m iprange --dst-range $DMZ_RN --
 # Forwarding Rule For $ESR
 $IPT -A FORWARD -p tcp -s $SSH_CLI1 -m iprange --dst-range $DMZ_RN --match multiport --sports $UNPR_PRTS \
                 --match multiport --dports $SSH_STDP,$SSH_LCLP,$SSH_DMZP,$ATLS_DMZP,5900,$ATLS_STDP \
-                -m conntrack $ESR -i $WAN_IF -o enp0e8 -j ACCEPT
+                -m conntrack $ESR -i $WAN_IF -o DMZ_IF -j ACCEPT
 # Forwarding SYN to Internal NAT Router.
 $IPT -A FORWARD -p tcp -i $WAN_IF -s $SSH_CLI1 -m iprange --dst-range $INT_RN --match multiport --sports $UNPR_PRTS \
                 --match multiport --dports $SSH_STDP,$SSH_INTP,$ATLS_INTP,5900,$ATLS_STDP --syn -m conntrack $NEW -j ACCEPT
 $IPT -A FORWARD -p tcp -s $SSH_CLI1 -m iprange --dst-range $INT_RN --match multiport --sports $UNPR_PRTS \
                 --match multiport --dports $SSH_STDP,$SSH_INTP,$ATLS_INTP,5900,$ATLS_STDP \
-                -m conntrack $ESR -i $WAN_IF -o enp0e8 -j ACCEPT
+                -m conntrack $ESR -i $WAN_IF -o DMZ_IF -j ACCEPT
 
 #
 # Test from JH to IntGW Host
@@ -565,6 +566,6 @@ $IPT -A LOGGING -m limit --limit 600/min -j LOG --log-prefix "IPT-Logging: " --l
 ########################################################################
 # Define custom chain _LOG_DROP_ for log dropped packets.
 #
-#$IPT -A _LOG_DROP_ -m limit --limit 10/min -j LOG --log-prefix "IPT-LogDrop: " --log-level 7
-#$IPT -A _LOG_DROP_ -j DROP
+$IPT -A _LOG_DROP_ -m limit --limit 10/min -j LOG --log-prefix "IPT-LogDrop: " --log-level 7
+$IPT -A _LOG_DROP_ -j DROP
 #$IPT -A LOGGING -j REJECT
