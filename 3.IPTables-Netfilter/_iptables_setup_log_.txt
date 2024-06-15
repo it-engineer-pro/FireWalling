@@ -345,7 +345,7 @@ done
 #
 
 ########################################################################
-# Allow Est/Rel (Logging for debug steps, and should be disabled).
+# Allow Est/Rel .
 #
 $IPT -t filter -A INPUT -i $WAN_IF -m conntrack --ctstate ESTABLISHED,RELATED -j _ESR_PASS_
 $IPT -t filter -A INPUT -i $DMZ_IF -s $DMZ_SN -m conntrack --ctstate ESTABLISHED,RELATED -j _ESR_PASS_
@@ -561,13 +561,13 @@ iptables -t nat -A POSTROUTING -o $WAN_IF -s $INT_SN -p ALL -j SNAT --to $WAN_IP
 ########################################################################
 # INPUT chain close rules.
 #
-$IPT -A INPUT -j LOG_DROP
+#$IPT -A INPUT -j LOG_DROP
 #
 # OUTPUT chain close rules.
-$IPT -A OUTPUT -j LOG_DROP
+#$IPT -A OUTPUT -j LOG_DROP
 #
 # FORWARD chain close rules.
-$IPT -A FORWARD -j LOG_DROP
+#$IPT -A FORWARD -j LOG_DROP
 #
 
 # TEMPLATE for quick RULES.

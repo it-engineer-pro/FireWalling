@@ -777,7 +777,7 @@ $IPT -A _WAN_IN_ -j _LOG_DROP_
 #                  -j ACCEPT
 #
 #$IPT -A _DMZ_OUT_ -p tcp -i enp0s8 --sport 2221 \
-#                  -m iprange --dst-range 192.168.120.20-192.168.120.25 \
+#                  -m iprange --src-range 192.168.120.20-192.168.120.25 \
 #                  --match multiport --dports 1025:65535 \
 #                  -m conntrack --ctstate ESTABLISHED,RELATED \
 #                  -j ACCEPT
