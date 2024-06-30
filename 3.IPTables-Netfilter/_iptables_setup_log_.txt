@@ -1,6 +1,7 @@
 # Простейшая подготовка к настройке сетевого фильтра
 # Подразумевается, наличие в системе пакетов:iptables,iptables-save.
 #
+#
 
 #0.
 [root@slinux ~]# mkdir -p /etc/sysconfig/_iptables
