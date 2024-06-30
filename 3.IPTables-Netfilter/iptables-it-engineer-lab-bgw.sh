@@ -1,19 +1,17 @@
 #!/bin/bash
 ########################################################################
 # BORDER BASTION_HOST FIREWALL TEMPLATE
+# ----------------------------
 # Additional tuning and evolution I'll publish in this repo
 # git@github.com:it-engineer-pro/FireWalling.git
 ########################################################################
 # PROTECTED SUBNETWORKS PLANE:
-# IDSSVS_LAN:192.168.100.0/24
+# ----------------------------
+# DMZSRV_LAN:172.16.16.0/24
 #
-# DMZSRV_LAN:192.168.30.0/24
+# INTSRV_LAN:172.16.17.0/24
 #
-# EXTSRV_LAN:192.168.20.0/24
-#
-# INTSRV_LAN:192.168.10.0/24
-#
-# OFFICE_LAN:192.168.1.0/24
+# OFFICE_LAN:172.16.172.0/24
 #
 # ISPNET_WAN:10.10.10.0/24
 ########################################################################
